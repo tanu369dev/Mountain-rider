@@ -1,0 +1,863 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Buy and sell used mountain bikes: browse, filter and list bikes.">
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<title>Singletrack Exchange</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a contour-map hero over a filter sidebar and a grid of bike listings; the sell form sits beside a live preview card. */
+:root{
+  --bg:#ECEFE9; --surface:#F8F9F5; --ink:#15201A; --muted:#556259; --line:#CDD4CA;
+  --accent:#1C58C4; --accent-ink:#FFFFFF; --contour:#C5CEC1; --img:#DFE5DB;
+  --good:#2C8656; --warn:#9A6516; --wheel:#1B2620;
+  --display:'Big Shoulders Display','Arial Narrow',Impact,sans-serif;
+  --body:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1512; --surface:#16201A; --ink:#E6ECE3; --muted:#92A097; --line:#27332B;
+    --accent:#7FA9FF; --accent-ink:#0B1530; --contour:#1E2A23; --img:#1B261F;
+    --good:#5CC48A; --warn:#E0A94A; --wheel:#DDE5DB; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1512; --surface:#16201A; --ink:#E6ECE3; --muted:#92A097; --line:#27332B;
+  --accent:#7FA9FF; --accent-ink:#0B1530; --contour:#1E2A23; --img:#1B261F;
+  --good:#5CC48A; --warn:#E0A94A; --wheel:#DDE5DB; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--ink); font:16px/1.5 var(--body);
+  padding-left:max(16px, env(safe-area-inset-left,0px));
+  padding-right:max(16px, env(safe-area-inset-right,0px));
+  padding-block:0 56px;
+}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3,p{margin:0}
+.wrap{max-width:1180px;margin:0 auto}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* header */
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding-block:18px 14px}
+.brand{font-family:var(--display);font-weight:800;font-size:26px;letter-spacing:.04em;text-transform:uppercase;text-decoration:none;color:var(--ink);display:flex;align-items:center;gap:10px}
+.brand svg{width:30px;height:30px;flex:none}
+.nav{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:8px 16px;border:1px solid var(--line);border-radius:6px;background:var(--surface);text-decoration:none;cursor:pointer;font-weight:600;font-size:15px}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn[aria-current="page"],.btn[aria-pressed="true"]{border-color:var(--ink)}
+.btn.primary[aria-current="page"]{border-color:var(--accent)}
+.btn.danger{color:#B3261E;border-color:#B3261E}
+:root[data-theme="dark"] .btn.danger{color:#FF8A80;border-color:#FF8A80}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .btn.danger{color:#FF8A80;border-color:#FF8A80}}
+.btn[disabled]{opacity:.55;cursor:default}
+
+/* hero */
+.hero{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:clamp(22px,4vw,44px)}
+.hero svg.contours{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.hero-in{position:relative;max-width:640px;display:grid;gap:16px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--display);font-weight:800;text-transform:uppercase;font-size:clamp(46px,9vw,92px);line-height:.9;letter-spacing:.01em;text-wrap:balance}
+.lede{max-width:46ch;color:var(--muted);font-size:17px}
+.search{display:flex;flex-wrap:wrap;gap:8px}
+.search input{flex:1 1 220px;min-width:0}
+
+/* motorbike entrance: rides in from the left, wheels spin down, dust trails, small wheelie, then it idles with exhaust puffs */
+.rider{position:relative;width:min(100%,430px);margin:20px 0 0 auto}
+.rider::after{content:"";position:absolute;left:-30%;right:-10%;bottom:9.3%;border-top:2px dashed var(--line);z-index:0}
+.rider-btn{position:relative;z-index:1;display:block;width:100%;padding:0;border:0;background:none;cursor:pointer}
+.ride,.pitch{display:block}
+.pitch{transform-origin:18% 88%}
+.rider-btn svg{display:block;width:100%;height:auto;overflow:visible}
+.speed{position:absolute;left:-14%;top:6%;width:70%;height:72%;z-index:0;pointer-events:none;overflow:visible}
+.speed line{opacity:0;vector-effect:non-scaling-stroke}
+.spin,.dust,.puff{transform-box:fill-box;transform-origin:center}
+.dust,.puff{opacity:0}
+@media (min-width:900px){
+  .hero{min-height:440px}
+  .hero-in{max-width:min(640px,58%)}
+  .rider{position:absolute;right:3%;bottom:14px;width:min(38%,440px);margin:0}
+}
+.go .ride{animation:sx-ride 1.8s cubic-bezier(.16,.8,.24,1) both}
+.go .pitch{animation:sx-pitch 1.1s ease-in-out 1.05s both}
+.go .spin{animation:sx-spin 1.8s cubic-bezier(.16,.8,.24,1) both}
+.go .dust{animation:sx-dust 1.1s ease-out both}
+.go .d2{animation-delay:.2s}.go .d3{animation-delay:.45s}.go .d4{animation-delay:.8s}
+.go .speed line{animation:sx-speed 1.5s ease-out both}
+.go .speed line:nth-child(2){animation-delay:.08s}.go .speed line:nth-child(3){animation-delay:.16s}
+.go .speed line:nth-child(4){animation-delay:.05s}.go .speed line:nth-child(5){animation-delay:.2s}
+.go .puff{animation:sx-puff 2.6s ease-out 2.2s infinite}
+.go .p2{animation-delay:3.5s}
+@keyframes sx-ride{from{transform:translateX(-105vw)}to{transform:translateX(0)}}
+@keyframes sx-pitch{0%{transform:rotate(0)}45%{transform:rotate(-8deg)}100%{transform:rotate(0)}}
+@keyframes sx-spin{from{transform:rotate(0)}to{transform:rotate(1440deg)}}
+@keyframes sx-dust{0%{opacity:0;transform:scale(.3) translate(0,0)}20%{opacity:.45}100%{opacity:0;transform:scale(2.4) translate(-34px,-16px)}}
+@keyframes sx-speed{0%{opacity:0;transform:translateX(-70px)}30%{opacity:.7}100%{opacity:0;transform:translateX(140px)}}
+@keyframes sx-puff{0%{opacity:0;transform:scale(.5) translate(0,0)}15%{opacity:.35}100%{opacity:0;transform:scale(2.2) translate(-26px,-18px)}}
+@media (prefers-reduced-motion:reduce){.rider *{animation:none!important}}
+
+/* form controls */
+input[type=text],input[type=search],input[type=number],select,textarea{width:100%;min-height:42px;padding:8px 12px;border:1px solid var(--line);border-radius:6px;background:var(--surface);font-size:16px}
+textarea{min-height:110px;resize:vertical}
+input::placeholder,textarea::placeholder{color:var(--muted)}
+label,.lab{display:grid;gap:6px;font-size:14px;font-weight:600}
+label small,.lab small{font-weight:400;color:var(--muted)}
+input[aria-invalid="true"],select[aria-invalid="true"],textarea[aria-invalid="true"]{border-color:#B3261E}
+.err{color:#B3261E;font-size:13px;font-weight:500;min-height:0}
+:root[data-theme="dark"] .err{color:#FF8A80}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .err{color:#FF8A80}}
+
+/* layout */
+.layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:28px;margin-top:24px;align-items:start}
+@media (max-width:899px){.layout{grid-template-columns:1fr;gap:16px}}
+.filters{border:1px solid var(--line);border-radius:8px;background:var(--surface);position:sticky;top:12px}
+@media (max-width:899px){.filters{position:static}}
+.filters summary{padding:12px 16px;font-weight:700;cursor:pointer}
+@media (min-width:900px){.filters summary{display:none}}
+.fbody{display:grid;gap:18px;padding:16px}
+@media (max-width:899px){.fbody{padding-top:4px}}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{min-height:36px;padding:4px 12px;border:1px solid var(--line);border-radius:999px;background:var(--bg);cursor:pointer;font-size:14px;font-weight:500}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.range-row{display:flex;justify-content:space-between;font-family:var(--mono);font-size:13px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.check{display:flex;align-items:center;gap:8px;font-weight:500}
+.check input{width:18px;height:18px;accent-color:var(--accent)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+.results-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.count{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.sortbox{display:flex;align-items:center;gap:8px;font-size:14px}
+.sortbox select{width:auto}
+.note{border:1px dashed var(--line);border-radius:6px;padding:8px 12px;font-size:14px;color:var(--muted);margin-bottom:14px}
+
+/* cards */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+.card{position:relative;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:8px;background:var(--surface);overflow:hidden;min-width:0}
+.thumb{display:block;width:100%;padding:0;border:0;background:var(--img);cursor:pointer;aspect-ratio:8/5;overflow:hidden}
+.thumb svg,.thumb img{display:block;width:100%;height:100%;object-fit:cover}
+.card-body{display:grid;gap:6px;padding:12px 14px 14px;min-width:0}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.price{font-family:var(--display);font-weight:800;font-size:28px;letter-spacing:.02em;line-height:1}
+.card h3{font-size:16px;font-weight:600;line-height:1.3}
+.linkish{all:unset;cursor:pointer;display:inline}
+.linkish:hover{text-decoration:underline}
+.linkish:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.spec{font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+.meta{font-size:13px;color:var(--muted)}
+.save{position:absolute;top:8px;right:8px;width:38px;height:38px;border:1px solid var(--line);border-radius:50%;background:var(--surface);display:grid;place-items:center;cursor:pointer;padding:0}
+.save svg{width:20px;height:20px;fill:none;stroke:var(--ink);stroke-width:2}
+.save[aria-pressed="true"] svg{fill:var(--accent);stroke:var(--accent)}
+.tag-sample{position:absolute;top:8px;left:8px;padding:2px 8px;border-radius:4px;background:var(--surface);border:1px solid var(--line);font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--warn)}
+.cond{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600}
+.cond::before{content:"";width:10px;height:10px;display:inline-block;flex:none}
+.cond.c-like-new::before{background:var(--good);border-radius:50%}
+.cond.c-good::before{background:var(--accent)}
+.cond.c-well-ridden::before{background:var(--ink);transform:rotate(45deg) scale(.85)}
+.empty{border:1px dashed var(--line);border-radius:8px;padding:36px 20px;text-align:center;display:grid;gap:12px;justify-items:center}
+.empty h2{font-family:var(--display);font-size:34px;text-transform:uppercase}
+.empty p{color:var(--muted);max-width:40ch}
+.card.preview{pointer-events:none}
+
+/* detail dialog */
+dialog{border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);padding:0;width:min(900px,calc(100% - 24px));max-height:calc(100% - 24px);overflow:auto}
+dialog::backdrop{background:rgba(8,12,10,.62)}
+.d-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}
+@media (max-width:719px){.d-grid{grid-template-columns:1fr}}
+.d-media{background:var(--img);align-self:start}
+.d-media svg,.d-media img{display:block;width:100%;height:auto}
+.d-info{padding:22px;display:grid;gap:14px;align-content:start;min-width:0}
+.d-info h2{font-size:24px;line-height:1.2;font-weight:700;padding-right:44px}
+.d-close{position:absolute;top:10px;right:10px;width:40px;height:40px;border:1px solid var(--line);border-radius:50%;background:var(--surface);cursor:pointer;font-size:20px;line-height:1}
+.d-wrap{position:relative}
+dl.specs{display:grid;grid-template-columns:auto 1fr;gap:6px 18px;margin:0;font-size:14px}
+dl.specs dt{color:var(--muted)}
+dl.specs dd{margin:0;font-family:var(--mono);font-size:13px}
+.desc{white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px}
+.seller{border-top:1px solid var(--line);padding-top:14px;display:grid;gap:10px}
+.contact-out{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.contact-out code{font-family:var(--mono);font-size:14px;padding:6px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);overflow-wrap:anywhere;user-select:all}
+.safe{font-size:13px;color:var(--muted)}
+
+/* sell view */
+.sell{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:28px;margin-top:24px;align-items:start}
+@media (max-width:899px){.sell{grid-template-columns:1fr}}
+.sell h2{font-family:var(--display);font-weight:800;text-transform:uppercase;font-size:clamp(38px,6vw,60px);line-height:.95;margin-bottom:6px}
+.panel{border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:20px;display:grid;gap:16px}
+fieldset{border:0;margin:0;padding:0;display:grid;gap:14px;min-width:0}
+legend{padding:0;margin-bottom:12px;font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:599px){.grid3{grid-template-columns:1fr 1fr}.two{grid-template-columns:1fr 1fr}}
+.photo-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.photo-row img{width:120px;height:75px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
+.prev{position:sticky;top:12px;display:grid;gap:10px}
+@media (max-width:899px){.prev{position:static}}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));max-width:min(520px,calc(100% - 32px));padding:12px 18px;border-radius:8px;background:var(--ink);color:var(--bg);font-weight:500;font-size:15px;z-index:50}
+.toast[hidden]{display:none}
+footer{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px 24px;justify-content:space-between}
+@media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}.card:hover{border-color:var(--ink)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="#browse" aria-label="Singletrack Exchange home">
+      <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="22" r="5.5"/><circle cx="24" cy="22" r="5.5"/><path d="M8 22l5-11h8l3 11M13 11l4 11h-9M20 6h4"/></svg>
+      Singletrack Exchange
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a class="btn" id="nav-browse" href="#browse">Browse bikes</a>
+      <button class="btn" id="nav-saved" type="button" aria-pressed="false">Saved <span id="saved-n">0</span></button>
+      <a class="btn primary" id="nav-sell" href="#sell">Sell a bike</a>
+    </nav>
+  </header>
+
+  <!-- BROWSE -->
+  <main id="view-browse">
+    <section class="hero" aria-labelledby="h1">
+      <svg class="contours" id="contours" viewBox="0 0 1200 420" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
+      <div class="hero-in">
+        <p class="eyebrow" id="hero-stat">Used mountain bikes</p>
+        <h1 id="h1">Buy and sell mountain bikes</h1>
+        <p class="lede">Hardtails, trail bikes, enduro rigs and downhill sleds, listed by the riders who owned them. Filter by wheel size, travel and frame size, then message the seller directly.</p>
+        <form class="search" id="hero-search" role="search">
+          <input type="search" id="q" placeholder="Search bikes, brands or cities" aria-label="Search bikes, brands or cities" autocomplete="off">
+          <button class="btn primary" type="submit">Search</button>
+        </form>
+      </div>
+      <div class="rider go" id="rider">
+        <svg class="speed" viewBox="0 0 200 120" preserveAspectRatio="none" aria-hidden="true">
+          <g stroke="var(--muted)" stroke-width="3" stroke-linecap="round">
+            <line x1="10" y1="22" x2="150" y2="22"/>
+            <line x1="40" y1="48" x2="170" y2="48"/>
+            <line x1="0" y1="74" x2="130" y2="74"/>
+            <line x1="30" y1="96" x2="160" y2="96"/>
+            <line x1="60" y1="112" x2="170" y2="112"/>
+          </g>
+        </svg>
+        <button class="rider-btn" id="rider-btn" type="button" aria-label="Replay the motorbike entrance">
+          <span class="ride"><span class="pitch">
+            <svg viewBox="0 0 360 215" role="img" aria-label="Illustration of a motocross motorbike" xmlns="http://www.w3.org/2000/svg">
+              <circle class="dust d1" cx="52" cy="186" r="9" fill="var(--muted)"/>
+              <circle class="dust d2" cx="40" cy="184" r="8" fill="var(--muted)"/>
+              <circle class="dust d3" cx="56" cy="188" r="10" fill="var(--muted)"/>
+              <circle class="dust d4" cx="44" cy="186" r="7" fill="var(--muted)"/>
+              <circle class="puff p1" cx="52" cy="140" r="5" fill="var(--muted)"/>
+              <circle class="puff p2" cx="52" cy="140" r="5" fill="var(--muted)"/>
+              <!-- exhaust pipe and swingarm -->
+              <path d="M172 148 Q122 178 60 140" fill="none" stroke="var(--muted)" stroke-width="7" stroke-linecap="round"/>
+              <path d="M78 148 L152 152" stroke="var(--wheel)" stroke-width="7" stroke-linecap="round"/>
+              <!-- rear shock -->
+              <path d="M114 112 L100 146" stroke="var(--wheel)" stroke-width="6" stroke-linecap="round"/>
+              <!-- rear wheel -->
+              <g class="spin">
+                <circle cx="78" cy="148" r="42" fill="none" stroke="var(--wheel)" stroke-width="9" stroke-dasharray="7 4"/>
+                <circle cx="78" cy="148" r="34" fill="none" stroke="var(--muted)" stroke-width="2"/>
+                <g stroke="var(--muted)" stroke-width="1.6">
+                  <line x1="44" y1="148" x2="112" y2="148"/><line x1="78" y1="114" x2="78" y2="182"/>
+                  <line x1="54" y1="124" x2="102" y2="172"/><line x1="54" y1="172" x2="102" y2="124"/>
+                </g>
+                <circle cx="78" cy="148" r="6" fill="var(--wheel)"/>
+              </g>
+              <!-- engine block -->
+              <path d="M140 120 L196 116 L206 156 L148 164 Z" fill="var(--wheel)"/>
+              <circle cx="176" cy="140" r="9" fill="none" stroke="var(--muted)" stroke-width="3"/>
+              <!-- rear fender and seat -->
+              <path d="M66 98 L104 100 L96 111 L58 106 Z" fill="var(--accent)"/>
+              <path d="M92 104 Q122 95 162 104 L170 115 L100 117 Z" fill="var(--ink)"/>
+              <!-- tank and front body -->
+              <path d="M150 112 Q176 82 224 92 L242 106 L214 118 Q180 108 150 112 Z" fill="var(--accent)"/>
+              <!-- front fork, bars, number plate -->
+              <path d="M232 104 L282 148" stroke="var(--wheel)" stroke-width="8" stroke-linecap="round"/>
+              <path d="M226 92 L240 78 M232 78 L254 82" stroke="var(--wheel)" stroke-width="5" stroke-linecap="round" fill="none"/>
+              <path d="M244 94 L264 103 L258 120 L240 111 Z" fill="var(--surface)" stroke="var(--wheel)" stroke-width="2.5" stroke-linejoin="round"/>
+              <path d="M262 112 Q290 100 308 120 L298 123 Q284 112 268 121 Z" fill="var(--accent)"/>
+              <!-- front wheel -->
+              <g class="spin">
+                <circle cx="282" cy="148" r="42" fill="none" stroke="var(--wheel)" stroke-width="9" stroke-dasharray="7 4"/>
+                <circle cx="282" cy="148" r="34" fill="none" stroke="var(--muted)" stroke-width="2"/>
+                <g stroke="var(--muted)" stroke-width="1.6">
+                  <line x1="248" y1="148" x2="316" y2="148"/><line x1="282" y1="114" x2="282" y2="182"/>
+                  <line x1="258" y1="124" x2="306" y2="172"/><line x1="258" y1="172" x2="306" y2="124"/>
+                </g>
+                <circle cx="282" cy="148" r="6" fill="var(--wheel)"/>
+              </g>
+            </svg>
+          </span></span>
+        </button>
+      </div>
+    </section>
+
+    <div class="layout">
+      <details class="filters" id="filt" open>
+        <summary>Filters</summary>
+        <div class="fbody">
+          <div class="lab"><span>Type of riding</span>
+            <div class="chips" id="cat-chips"></div>
+          </div>
+          <label for="f-max">Max price
+            <input type="range" id="f-max" min="10000" max="300000" step="5000" value="300000">
+            <span class="range-row"><span>₹10,000</span><span id="max-out">Any price</span></span>
+          </label>
+          <div class="two">
+            <label for="f-wheel">Wheel size<select id="f-wheel"></select></label>
+            <label for="f-size">Frame size<select id="f-size"></select></label>
+          </div>
+          <label for="f-susp">Suspension<select id="f-susp"></select></label>
+          <label for="f-cond">Condition<select id="f-cond"></select></label>
+          <button class="btn" type="button" id="reset">Reset filters</button>
+        </div>
+      </details>
+
+      <section aria-label="Listings">
+        <div class="results-head">
+          <p class="count" id="count" aria-live="polite"></p>
+          <label class="sortbox" for="sort">Sort
+            <select id="sort">
+              <option value="new">Newest first</option>
+              <option value="low">Price, low to high</option>
+              <option value="high">Price, high to low</option>
+            </select>
+          </label>
+        </div>
+        <p class="note" id="net" hidden>Live listings are taking a while to load. You are seeing the ones already available.</p>
+        <div class="grid" id="grid"></div>
+      </section>
+    </div>
+  </main>
+
+  <!-- SELL -->
+  <section id="view-sell" hidden aria-labelledby="sell-h">
+    <div class="sell">
+      <form class="panel" id="sell-form" novalidate>
+        <div>
+          <h2 id="sell-h">Sell your bike</h2>
+          <p class="lede">Good listings sell faster. Be exact about the frame size, travel and any parts you have replaced.</p>
+        </div>
+        <fieldset>
+          <legend>The bike</legend>
+          <label for="s-title">Listing title<input type="text" id="s-title" maxlength="90" placeholder="e.g. 29er hardtail, 100 mm fork, 1x12" autocomplete="off"><span class="err" id="err-title"></span></label>
+          <div class="two">
+            <label for="s-brand">Brand <small>optional</small><input type="text" id="s-brand" maxlength="40" autocomplete="off"></label>
+            <label for="s-year">Model year <small>optional</small><input type="number" id="s-year" min="1990" max="2100" inputmode="numeric"></label>
+          </div>
+          <div class="grid3">
+            <label for="s-cat">Type of riding<select id="s-cat"></select></label>
+            <label for="s-wheel">Wheel size<select id="s-wheel"></select></label>
+            <label for="s-size">Frame size<select id="s-size"></select></label>
+            <label for="s-susp">Suspension<select id="s-susp"></select></label>
+            <label for="s-travel">Fork travel, mm<input type="number" id="s-travel" min="0" max="250" inputmode="numeric" placeholder="120"></label>
+            <label for="s-mat">Frame material<select id="s-mat"></select></label>
+          </div>
+          <label for="s-desc">Description <small>drivetrain, brakes, wheels, service history, flaws</small><textarea id="s-desc" maxlength="1200"></textarea></label>
+        </fieldset>
+        <fieldset>
+          <legend>Price and condition</legend>
+          <div class="two">
+            <label for="s-price">Asking price, ₹<input type="number" id="s-price" min="500" max="5000000" step="500" inputmode="numeric" placeholder="45000"><span class="err" id="err-price"></span></label>
+            <label for="s-cond">Condition<select id="s-cond"></select></label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Photo</legend>
+          <div class="photo-row">
+            <input type="file" id="s-photo" accept="image/*" aria-label="Upload a photo of the bike">
+            <button class="btn" type="button" id="photo-clear" hidden>Remove photo</button>
+          </div>
+          <span class="err" id="err-photo"></span>
+          <p class="safe">Without a photo, buyers see a drawing that matches your wheel size and suspension.</p>
+        </fieldset>
+        <fieldset>
+          <legend>About you</legend>
+          <div class="two">
+            <label for="s-name">Your name<input type="text" id="s-name" maxlength="60" autocomplete="name"><span class="err" id="err-name"></span></label>
+            <label for="s-city">City<input type="text" id="s-city" maxlength="60" autocomplete="address-level2"><span class="err" id="err-city"></span></label>
+          </div>
+          <label for="s-contact">Phone or email for buyers <small>shown only after a buyer taps "Show contact"</small><input type="text" id="s-contact" maxlength="120" autocomplete="off"><span class="err" id="err-contact"></span></label>
+        </fieldset>
+        <div class="row">
+          <button class="btn primary" type="submit" id="s-submit">Post listing</button>
+          <span class="err" id="err-form" role="alert"></span>
+        </div>
+      </form>
+      <aside class="prev" aria-label="Listing preview">
+        <p class="eyebrow">How buyers will see it</p>
+        <div id="preview"></div>
+      </aside>
+    </div>
+  </section>
+
+  <footer>
+    <span>Meet in a public place, test ride the bike and check the frame number before you pay.</span>
+    <span>Listings marked "Sample" are examples and have no seller.</span>
+  </footer>
+</div>
+
+<dialog id="detail" aria-label="Bike details"><div class="d-wrap" id="detail-body"></div></dialog>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(function(){
+'use strict';
+var $=function(s,r){return (r||document).querySelector(s)};
+var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
+var inr=function(n){return '₹'+Math.round(Number(n)||0).toLocaleString('en-IN')};
+
+var CATS=['XC','Trail','Enduro','Downhill','Dirt jump'];
+var CONDS={'like-new':'Like new','good':'Good','well-ridden':'Well ridden'};
+var WHEELS=[26,27.5,29], SIZES=['XS','S','M','L','XL'], SUSP=['Hardtail','Full suspension'], MATS=['Alloy','Carbon','Steel'];
+var FRAME=['#2F6FD6','#D9822B','#2E8B57','#C2415C','#7A5BD1','#1F9DAA'];
+var DAY=864e5, NOW=Date.now();
+
+var SAMPLES=[
+ {id:'s1',title:'29er hardtail, 100 mm fork, 1x11',brand:'Tarn Cycles',category:'XC',priceInr:42000,condition:'good',wheel:29,size:'M',susp:'Hardtail',travel:100,material:'Alloy',year:2021,city:'Pune',description:'Hydraulic disc brakes, tubeless-ready wheels, 1x11 drivetrain. New chain and pads last month. Light scuffs on the top tube.',createdAt:NOW-2*DAY},
+ {id:'s2',title:'Carbon trail bike, 140 mm travel',brand:'Ondo Bikes',category:'Trail',priceInr:185000,condition:'like-new',wheel:29,size:'L',susp:'Full suspension',travel:140,material:'Carbon',year:2023,city:'Bengaluru',description:'Ridden about 300 km. 12-speed drivetrain, dropper post, tubeless tyres. Rear shock serviced in September.',createdAt:NOW-1*DAY},
+ {id:'s3',title:'Enduro 27.5, 170 mm travel',brand:'Kestrel & Co',category:'Enduro',priceInr:128000,condition:'well-ridden',wheel:27.5,size:'M',susp:'Full suspension',travel:170,material:'Alloy',year:2020,city:'Mumbai',description:'Four seasons of Western Ghats riding. New bearings and fork seals. Cosmetic wear on the frame, nothing structural.',createdAt:NOW-6*DAY},
+ {id:'s4',title:'Downhill bike, 200 mm travel',brand:'Vale Works',category:'Downhill',priceInr:98000,condition:'well-ridden',wheel:27.5,size:'L',susp:'Full suspension',travel:200,material:'Alloy',year:2019,city:'Dehradun',description:'7-speed downhill drivetrain, four-piston brakes. Suitable for bike park days. Sold with a spare set of tyres.',createdAt:NOW-9*DAY},
+ {id:'s5',title:'Dirt jump hardtail, 26 inch',brand:'Tarn Cycles',category:'Dirt jump',priceInr:24000,condition:'good',wheel:26,size:'S',susp:'Hardtail',travel:100,material:'Steel',year:2018,city:'Chennai',description:'Single-speed, short chainstays, 100 mm fork. Fresh grips and pedals.',createdAt:NOW-12*DAY},
+ {id:'s6',title:'Carbon XC race hardtail',brand:'Ondo Bikes',category:'XC',priceInr:96000,condition:'like-new',wheel:29,size:'S',susp:'Hardtail',travel:100,material:'Carbon',year:2022,city:'Hyderabad',description:'Lockout fork, 1x12 drivetrain, tubeless race tyres. Raced twice. Weighs under 10.5 kg without pedals.',createdAt:NOW-4*DAY},
+ {id:'s7',title:'Trail bike 27.5, 130 mm travel',brand:'Kestrel & Co',category:'Trail',priceInr:64000,condition:'good',wheel:27.5,size:'S',susp:'Full suspension',travel:130,material:'Alloy',year:2020,city:'Goa',description:'Dropper post, wide handlebar, new rear tyre. Ideal for riders between 155 and 170 cm.',createdAt:NOW-15*DAY},
+ {id:'s8',title:'Beginner 29er hardtail, 120 mm fork',brand:'Vale Works',category:'Trail',priceInr:31000,condition:'good',wheel:29,size:'XL',susp:'Hardtail',travel:120,material:'Alloy',year:2022,city:'Delhi',description:'Mechanical disc brakes, 3x8 drivetrain. A solid first mountain bike for a taller rider.',createdAt:NOW-20*DAY}
+].map(function(s){s.sample=true;s.photo='';s.sellerName='';s.contact='';s.sellerId='';return s});
+
+function hash(s){var h=0;s=String(s);for(var i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))|0}return Math.abs(h)}
+function num(v,d){v=+v;return isFinite(v)?v:d}
+function norm(r,id,extra){
+  var o={
+    id:id,title:String(r.title||'').slice(0,90),brand:String(r.brand||'').slice(0,40),
+    category:CATS.indexOf(r.category)>-1?r.category:'Trail',
+    priceInr:Math.max(0,Math.min(5e6,num(r.priceInr,0))),
+    condition:CONDS[r.condition]?r.condition:'good',
+    wheel:WHEELS.indexOf(+r.wheel)>-1?+r.wheel:29,
+    size:SIZES.indexOf(r.size)>-1?r.size:'M',
+    susp:SUSP.indexOf(r.susp)>-1?r.susp:'Hardtail',
+    travel:Math.max(0,Math.min(250,num(r.travel,0))),
+    material:MATS.indexOf(r.material)>-1?r.material:'Alloy',
+    year:(function(y){return y>=1990&&y<=2100?y:0})(num(r.year,0)),
+    city:String(r.city||'').slice(0,60),description:String(r.description||'').slice(0,1200),
+    sellerName:String(r.sellerName||'').slice(0,60),contact:String(r.contact||'').slice(0,120),
+    photo:/^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(r.photo||'')?r.photo:'',
+    sellerId:String(r.sellerId||''),createdAt:num(r.createdAt,0),sample:!!r.sample
+  };
+  if(extra){for(var k in extra){o[k]=extra[k]}}
+  return o;
+}
+
+/* ---------- bike drawing ---------- */
+function bikeSVG(b){
+  var col=FRAME[hash(b.id||b.title)%FRAME.length];
+  var r=b.wheel===29?46:(b.wheel===27.5?43:39), cy=168-r;
+  var rx=78,fx=242,bbx=140,bby=cy,st=[124,cy-62],ht=[216,cy-64],hb=[212,cy-52];
+  var full=b.susp==='Full suspension';
+  var f='<svg viewBox="0 0 320 200" role="img" aria-label="Drawing of a '+esc(b.wheel)+' inch '+(full?'full suspension':'hardtail')+' mountain bike" xmlns="http://www.w3.org/2000/svg">';
+  f+='<line x1="20" y1="168" x2="300" y2="168" stroke="var(--line)" stroke-width="2" stroke-dasharray="3 7" stroke-linecap="round"/>';
+  [rx,fx].forEach(function(x){
+    f+='<circle cx="'+x+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="var(--wheel)" stroke-width="6"/>';
+    f+='<circle cx="'+x+'" cy="'+cy+'" r="'+(r-7)+'" fill="none" stroke="var(--muted)" stroke-width="1" opacity=".5"/>';
+    f+='<circle cx="'+x+'" cy="'+cy+'" r="3.5" fill="var(--wheel)"/>';
+  });
+  f+='<g fill="none" stroke="'+col+'" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">';
+  f+='<path d="M'+bbx+' '+bby+' L'+st[0]+' '+st[1]+' L'+ht[0]+' '+ht[1]+' L'+hb[0]+' '+hb[1]+' Z"/>';
+  f+='<path d="M'+rx+' '+cy+' L'+bbx+' '+bby+'"/>';
+  f+='<path d="M'+rx+' '+cy+' L'+st[0]+' '+st[1]+'"/>';
+  f+='</g>';
+  f+='<g fill="none" stroke="var(--wheel)" stroke-linecap="round" stroke-linejoin="round">';
+  f+='<path d="M'+hb[0]+' '+(hb[1]+2)+' L'+fx+' '+cy+'" stroke-width="'+(full?7:5)+'"/>';
+  if(full){f+='<path d="M131 '+(cy-46)+' L153 '+(cy-14)+'" stroke-width="6"/>'}
+  f+='<path d="M'+ht[0]+' '+(ht[1]+3)+' L214 '+(ht[1]-12)+' M205 '+(ht[1]-14)+' L226 '+(ht[1]-12)+'" stroke-width="4"/>';
+  f+='<path d="M'+st[0]+' '+st[1]+' L'+st[0]+' '+(st[1]-9)+' M111 '+(st[1]-9)+' L139 '+(st[1]-9)+'" stroke-width="5"/>';
+  f+='<circle cx="'+bbx+'" cy="'+bby+'" r="9" stroke-width="2.5"/>';
+  f+='<path d="M'+bbx+' '+bby+' L'+(bbx-10)+' '+(bby+16)+'" stroke-width="3"/>';
+  f+='</g></svg>';
+  return f;
+}
+function media(b){
+  if(b.photo){return '<img src="'+b.photo+'" alt="Photo of '+esc(b.title)+'" loading="lazy">'}
+  return bikeSVG(b);
+}
+function ago(t){
+  if(!t){return ''}
+  var d=Math.floor((Date.now()-t)/DAY);
+  if(d<=0){return 'Listed today'}
+  if(d===1){return 'Listed yesterday'}
+  if(d<30){return 'Listed '+d+' days ago'}
+  var m=Math.floor(d/30);return 'Listed '+m+(m===1?' month':' months')+' ago';
+}
+function specLine(b){
+  var p=[b.wheel+'″',b.susp==='Full suspension'?'Full sus':'Hardtail'];
+  if(b.travel){p.push(b.travel+' mm')}
+  p.push(b.size);
+  return p.join(' · ');
+}
+var HEART='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5S3.5 15.4 3.5 9.2C3.5 6.5 5.5 4.8 7.8 4.8c1.7 0 3.2.9 4.2 2.4 1-1.5 2.5-2.4 4.2-2.4 2.3 0 4.3 1.7 4.3 4.4 0 6.200-8.500 11.300-8.500 11.300z" stroke-linejoin="round"/></svg>';
+
+function cardHTML(b,preview){
+  var saved=!preview&&isSaved(b.id);
+  var title=b.title||'Your bike title';
+  var open=preview?'':' data-open="'+esc(b.id)+'"';
+  return '<article class="card'+(preview?' preview':'')+'">'+
+    '<button type="button" class="thumb"'+open+' aria-label="Open '+esc(title)+'" tabindex="'+(preview?-1:0)+'">'+media(b)+'</button>'+
+    (b.sample?'<span class="tag-sample">Sample</span>':'')+
+    (preview?'':'<button type="button" class="save" data-save="'+esc(b.id)+'" aria-pressed="'+saved+'" aria-label="'+(saved?'Remove from saved':'Save this bike')+'">'+HEART+'</button>')+
+    '<div class="card-body">'+
+      '<div class="row"><p class="price">'+(b.priceInr?inr(b.priceInr):'₹ —')+'</p><span class="cond c-'+b.condition+'">'+CONDS[b.condition]+'</span></div>'+
+      '<h3>'+(preview?esc(title):'<button type="button" class="linkish"'+open+'>'+esc(title)+'</button>')+'</h3>'+
+      '<p class="spec">'+esc(specLine(b))+'</p>'+
+      '<p class="meta">'+esc(b.city||'City')+(b.createdAt?' · '+ago(b.createdAt):'')+'</p>'+
+    '</div></article>';
+}
+
+/* ---------- storage helpers ---------- */
+function lsGet(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
+var saved=lsGet('sx-saved',[]); if(!Array.isArray(saved)){saved=[]}
+var localRaw=lsGet('sx-local',[]); if(!Array.isArray(localRaw)){localRaw=[]}
+var local=localRaw.map(function(r){return norm(r,String(r.id||'local-x'),{local:true})});
+var dbList=[];
+function isSaved(id){return saved.indexOf(id)>-1}
+function toggleSaved(id){
+  var i=saved.indexOf(id);
+  if(i>-1){saved.splice(i,1)}else{saved.push(id)}
+  lsSet('sx-saved',saved);
+  render();
+}
+function all(){return dbList.concat(local,SAMPLES)}
+
+/* ---------- filters ---------- */
+var S={q:'',cat:'All',max:300000,wheel:'any',size:'any',susp:'any',cond:'any',saved:false,sort:'new'};
+function fillSelect(el,items){el.innerHTML=items.map(function(i){return '<option value="'+esc(i[0])+'">'+esc(i[1])+'</option>'}).join('')}
+function setupControls(){
+  fillSelect($('#f-wheel'),[['any','Any']].concat(WHEELS.map(function(w){return [String(w),w+'″']})));
+  fillSelect($('#f-size'),[['any','Any']].concat(SIZES.map(function(s){return [s,s]})));
+  fillSelect($('#f-susp'),[['any','Any']].concat(SUSP.map(function(s){return [s,s]})));
+  fillSelect($('#f-cond'),[['any','Any']].concat(Object.keys(CONDS).map(function(k){return [k,CONDS[k]]})));
+  fillSelect($('#s-cat'),CATS.map(function(c){return [c,c]}));
+  fillSelect($('#s-wheel'),WHEELS.map(function(w){return [String(w),w+'″']}));
+  $('#s-wheel').value='29';
+  fillSelect($('#s-size'),SIZES.map(function(s){return [s,s]}));
+  $('#s-size').value='M';
+  fillSelect($('#s-susp'),SUSP.map(function(s){return [s,s]}));
+  fillSelect($('#s-mat'),MATS.map(function(s){return [s,s]}));
+  fillSelect($('#s-cond'),Object.keys(CONDS).map(function(k){return [k,CONDS[k]]}));
+  $('#s-cond').value='good';
+  var chips=['All'].concat(CATS);
+  $('#cat-chips').innerHTML=chips.map(function(c){return '<button type="button" class="chip" data-cat="'+esc(c)+'" aria-pressed="'+(c===S.cat)+'">'+esc(c)+'</button>'}).join('');
+}
+function matches(b){
+  if(S.cat!=='All'&&b.category!==S.cat){return false}
+  if(S.max<300000&&b.priceInr>S.max){return false}
+  if(S.wheel!=='any'&&String(b.wheel)!==S.wheel){return false}
+  if(S.size!=='any'&&b.size!==S.size){return false}
+  if(S.susp!=='any'&&b.susp!==S.susp){return false}
+  if(S.cond!=='any'&&b.condition!==S.cond){return false}
+  if(S.saved&&!isSaved(b.id)){return false}
+  if(S.q){
+    var hay=(b.title+' '+b.brand+' '+b.city+' '+b.category+' '+b.description).toLowerCase();
+    var parts=S.q.toLowerCase().split(/\s+/).filter(Boolean);
+    for(var i=0;i<parts.length;i++){if(hay.indexOf(parts[i])<0){return false}}
+  }
+  return true;
+}
+function render(){
+  var list=all(), shown=list.filter(matches);
+  shown.sort(function(a,b){
+    if(S.sort==='low'){return a.priceInr-b.priceInr}
+    if(S.sort==='high'){return b.priceInr-a.priceInr}
+    return b.createdAt-a.createdAt;
+  });
+  var g=$('#grid');
+  if(shown.length){
+    g.innerHTML=shown.map(function(b){return cardHTML(b,false)}).join('');
+  }else{
+    g.innerHTML='<div class="empty" style="grid-column:1/-1"><h2>'+(S.saved?'Nothing saved yet':'No bikes match')+'</h2><p>'+(S.saved?'Tap the heart on a bike to keep it here.':'Try a wider price range or a different type of riding.')+'</p><button class="btn" type="button" id="empty-reset">Reset filters</button></div>';
+  }
+  $('#count').textContent='Showing '+shown.length+' of '+list.length+' bikes';
+  var real=list.filter(function(b){return !b.sample}).length;
+  $('#hero-stat').textContent=list.length+' bikes listed'+(real?' · '+real+' from riders':'');
+  $('#saved-n').textContent=String(saved.length);
+  $('#nav-saved').setAttribute('aria-pressed',String(S.saved));
+  $('#max-out').textContent=S.max>=300000?'Any price':'Up to '+inr(S.max);
+  $$('#cat-chips .chip').forEach(function(c){c.setAttribute('aria-pressed',String(c.getAttribute('data-cat')===S.cat))});
+}
+function resetFilters(){
+  S.q='';S.cat='All';S.max=300000;S.wheel='any';S.size='any';S.susp='any';S.cond='any';S.saved=false;
+  $('#q').value='';$('#f-max').value='300000';
+  ['#f-wheel','#f-size','#f-susp','#f-cond'].forEach(function(s){$(s).value='any'});
+  render();
+}
+
+/* ---------- detail dialog ---------- */
+var current=null, uid=null, user=null, db=null;
+function canDelete(b){
+  if(b.sample){return false}
+  if(b.local){return true}
+  if(b.sellerId&&uid&&b.sellerId===uid){return true}
+  try{return !!(user&&user.canEdit&&user.canEdit())}catch(e){return false}
+}
+function openDetail(id){
+  var b=all().filter(function(x){return x.id===id})[0];
+  if(!b){return}
+  current=b;
+  var rows=[['Type',b.category],['Wheels',b.wheel+'″'],['Frame',b.size+' · '+b.material],['Suspension',b.susp+(b.travel?', '+b.travel+' mm':'')]];
+  if(b.brand){rows.unshift(['Brand',b.brand])}
+  if(b.year){rows.push(['Model year',String(b.year)])}
+  rows.push(['Location',b.city||'Not given']);
+  var seller;
+  if(b.sample){
+    seller='<div class="seller"><p class="safe">This is a sample listing, so there is no seller to contact. Post your own bike with "Sell a bike".</p></div>';
+  }else{
+    seller='<div class="seller"><p><strong>'+esc(b.sellerName||'Seller')+'</strong></p><div id="contact-slot"><button class="btn primary" type="button" id="show-contact">Show contact</button></div><p class="safe">Meet in a public place, test ride the bike and check the frame number before you pay.</p>'+
+      (canDelete(b)?'<div><button class="btn danger" type="button" id="del">Delete listing</button></div>':'')+'</div>';
+  }
+  $('#detail-body').innerHTML='<button class="d-close" type="button" id="d-close" aria-label="Close">×</button>'+
+    '<div class="d-grid"><div class="d-media">'+media(b)+'</div><div class="d-info">'+
+    '<div class="row"><p class="price">'+inr(b.priceInr)+'</p><span class="cond c-'+b.condition+'">'+CONDS[b.condition]+'</span></div>'+
+    '<h2>'+esc(b.title)+'</h2>'+
+    '<dl class="specs">'+rows.map(function(r){return '<dt>'+esc(r[0])+'</dt><dd>'+esc(r[1])+'</dd>'}).join('')+'</dl>'+
+    (b.description?'<p class="desc">'+esc(b.description)+'</p>':'')+
+    '<p class="meta">'+esc(ago(b.createdAt))+'</p>'+seller+'</div></div>';
+  var dlg=$('#detail');
+  if(!dlg.open){try{dlg.showModal()}catch(e){dlg.setAttribute('open','')}}
+}
+function closeDetail(){var d=$('#detail');try{d.close()}catch(e){d.removeAttribute('open')}current=null}
+
+var toastT=null;
+function toast(msg){
+  var t=$('#toast');t.textContent=msg;t.hidden=false;
+  clearTimeout(toastT);toastT=setTimeout(function(){t.hidden=true},4500);
+}
+function copyText(text,el){
+  var done=function(){toast('Copied')};
+  try{
+    navigator.clipboard.writeText(text).then(done,function(){selectNode(el)});
+  }catch(e){selectNode(el)}
+}
+function selectNode(el){
+  try{var r=document.createRange();r.selectNodeContents(el);var s=getSelection();s.removeAllRanges();s.addRange(r);toast('Contact selected. Copy it from your keyboard.')}catch(e){}
+}
+
+/* ---------- sell form ---------- */
+var photoData='';
+function formValues(){
+  return {
+    title:$('#s-title').value.trim(),brand:$('#s-brand').value.trim(),year:$('#s-year').value,
+    category:$('#s-cat').value,wheel:$('#s-wheel').value,size:$('#s-size').value,susp:$('#s-susp').value,
+    travel:$('#s-travel').value,material:$('#s-mat').value,description:$('#s-desc').value.trim(),
+    priceInr:$('#s-price').value,condition:$('#s-cond').value,
+    sellerName:$('#s-name').value.trim(),city:$('#s-city').value.trim(),contact:$('#s-contact').value.trim(),
+    photo:photoData
+  };
+}
+function validate(v){
+  var e={};
+  if(v.title.length<6){e.title='Write a title of at least 6 characters.'}
+  var p=+v.priceInr;
+  if(!(p>=500)){e.price='Enter an asking price of at least ₹500.'}
+  if(!v.sellerName){e.name='Enter your name.'}
+  if(!v.city){e.city='Enter the city the bike is in.'}
+  if(v.contact.length<5){e.contact='Enter a phone number or email so buyers can reach you.'}
+  return e;
+}
+var FIELD={title:'#s-title',price:'#s-price',name:'#s-name',city:'#s-city',contact:'#s-contact'};
+function showErrors(e){
+  Object.keys(FIELD).forEach(function(k){
+    var m=e[k]||'';
+    $('#err-'+k).textContent=m;
+    if(m){$(FIELD[k]).setAttribute('aria-invalid','true')}else{$(FIELD[k]).removeAttribute('aria-invalid')}
+  });
+}
+function renderPreview(){
+  var v=formValues();
+  $('#preview').innerHTML=cardHTML(norm(v,'preview',{createdAt:Date.now()}),true);
+}
+function readPhoto(file){
+  return new Promise(function(res,rej){
+    if(!file||!/^image\//.test(file.type)){rej(new Error('Choose an image file.'));return}
+    if(file.size>15*1024*1024){rej(new Error('That image is over 15 MB. Choose a smaller one.'));return}
+    var fr=new FileReader();
+    fr.onerror=function(){rej(new Error('That file could not be read.'))};
+    fr.onload=function(){
+      var img=new Image();
+      img.onerror=function(){rej(new Error('That image could not be opened. Try a JPG or PNG.'))};
+      img.onload=function(){
+        var max=720,w=img.width,h=img.height,k=Math.min(1,max/Math.max(w,h));
+        var c=document.createElement('canvas');c.width=Math.max(1,Math.round(w*k));c.height=Math.max(1,Math.round(h*k));
+        var x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(img,0,0,c.width,c.height);
+        res(c.toDataURL('image/jpeg',0.72));
+      };
+      img.src=fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+function canWriteDb(){
+  if(!db){return false}
+  try{if(user&&user.can){return user.can('data.write')!==false}}catch(e){}
+  return true;
+}
+async function submitListing(ev){
+  ev.preventDefault();
+  var v=formValues(),errs=validate(v);
+  showErrors(errs);$('#err-form').textContent='';
+  var keys=Object.keys(errs);
+  if(keys.length){$(FIELD[keys[0]]).focus();return}
+  var btn=$('#s-submit');btn.disabled=true;btn.textContent='Posting…';
+  var doc=Object.assign({},v,{priceInr:+v.priceInr,travel:+v.travel||0,year:+v.year||0,wheel:+v.wheel,sellerId:uid||'',createdAt:Date.now()});
+  var pub=false;
+  if(canWriteDb()){
+    try{await db.collection('listings').add(doc);pub=true}catch(e){pub=false}
+  }
+  if(!pub){
+    var rec=norm(doc,'local-'+Date.now().toString(36),{local:true});
+    local.unshift(rec);
+    var raw=local.map(function(b){return b});
+    if(!lsSet('sx-local',raw)){
+      local[0].photo='';
+      lsSet('sx-local',local);
+    }
+  }
+  btn.disabled=false;btn.textContent='Post listing';
+  $('#sell-form').reset();photoData='';$('#photo-clear').hidden=true;
+  $('#s-wheel').value='29';$('#s-size').value='M';$('#s-cond').value='good';
+  showErrors({});renderPreview();
+  S.sort='new';$('#sort').value='new';
+  location.hash='#browse';
+  toast(pub?'Your bike is listed. Buyers can see it now.':'Your bike is listed in this browser only. This page did not allow public posting for your account.');
+  render();
+}
+
+/* ---------- routing ---------- */
+function route(){
+  var sell=location.hash==='#sell';
+  $('#view-browse').hidden=sell;$('#view-sell').hidden=!sell;
+  var nb=$('#nav-browse'),ns=$('#nav-sell');
+  if(sell){ns.setAttribute('aria-current','page');nb.removeAttribute('aria-current')}
+  else{nb.setAttribute('aria-current','page');ns.removeAttribute('aria-current')}
+  if(sell){renderPreview()}
+  window.scrollTo(0,0);
+}
+
+/* ---------- contours ---------- */
+function drawContours(){
+  var svg=$('#contours'),cx=930,cy=210,out='';
+  for(var i=1;i<=15;i++){
+    var base=i*22,pts=[];
+    for(var a=0;a<=360;a+=4){
+      var t=a*Math.PI/180;
+      var rr=base*(1+0.14*Math.sin(3*t+i*0.18)+0.07*Math.sin(5*t+1.3+i*0.1)+0.04*Math.sin(2*t));
+      pts.push((cx+rr*1.45*Math.cos(t)).toFixed(1)+','+(cy+rr*0.85*Math.sin(t)).toFixed(1));
+    }
+    out+='<polyline points="'+pts.join(' ')+'" fill="none" stroke="var(--contour)" stroke-width="'+(i%5===0?2:1.2)+'"/>';
+  }
+  svg.innerHTML=out;
+}
+
+/* ---------- wiring ---------- */
+function wire(){
+  $('#hero-search').addEventListener('submit',function(e){e.preventDefault();S.q=$('#q').value.trim();render();$('#grid').scrollIntoView({block:'start'})});
+  $('#q').addEventListener('input',function(){S.q=this.value.trim();render()});
+  $('#rider-btn').addEventListener('click',function(){
+    var r=$('#rider');r.classList.remove('go');void r.offsetWidth;r.classList.add('go');
+  });
+  $('#cat-chips').addEventListener('click',function(e){var b=e.target.closest('[data-cat]');if(!b){return}S.cat=b.getAttribute('data-cat');render()});
+  $('#f-max').addEventListener('input',function(){S.max=+this.value;render()});
+  [['#f-wheel','wheel'],['#f-size','size'],['#f-susp','susp'],['#f-cond','cond']].forEach(function(p){
+    $(p[0]).addEventListener('change',function(){S[p[1]]=this.value;render()});
+  });
+  $('#sort').addEventListener('change',function(){S.sort=this.value;render()});
+  $('#reset').addEventListener('click',resetFilters);
+  $('#nav-saved').addEventListener('click',function(){
+    S.saved=!S.saved;
+    if(location.hash==='#sell'){location.hash='#browse'}
+    render();
+  });
+  $('#grid').addEventListener('click',function(e){
+    var s=e.target.closest('[data-save]');
+    if(s){toggleSaved(s.getAttribute('data-save'));return}
+    var o=e.target.closest('[data-open]');
+    if(o){openDetail(o.getAttribute('data-open'));return}
+    if(e.target.id==='empty-reset'){resetFilters()}
+  });
+  var dlg=$('#detail');
+  dlg.addEventListener('click',function(e){
+    if(e.target===dlg){closeDetail();return}
+    if(e.target.id==='d-close'){closeDetail();return}
+    if(e.target.id==='show-contact'&&current){
+      var slot=$('#contact-slot');
+      slot.innerHTML='<div class="contact-out"><code id="contact-text"></code><button class="btn" type="button" id="copy-contact">Copy</button></div>';
+      $('#contact-text').textContent=current.contact;
+      return;
+    }
+    if(e.target.id==='copy-contact'){copyText(current.contact,$('#contact-text'));return}
+    if(e.target.id==='del'&&current){
+      var btn=e.target;
+      if(btn.getAttribute('data-sure')!=='1'){btn.setAttribute('data-sure','1');btn.textContent='Click again to delete for good';return}
+      deleteListing(current);
+    }
+  });
+  dlg.addEventListener('close',function(){current=null});
+  var form=$('#sell-form');
+  form.addEventListener('submit',submitListing);
+  form.addEventListener('input',function(){renderPreview()});
+  form.addEventListener('change',function(){renderPreview()});
+  $('#s-photo').addEventListener('change',function(){
+    var f=this.files&&this.files[0];$('#err-photo').textContent='';
+    if(!f){return}
+    readPhoto(f).then(function(d){photoData=d;$('#photo-clear').hidden=false;renderPreview()},function(err){photoData='';$('#err-photo').textContent=err.message;$('#s-photo').value='';renderPreview()});
+  });
+  $('#photo-clear').addEventListener('click',function(){photoData='';$('#s-photo').value='';this.hidden=true;renderPreview()});
+  window.addEventListener('hashchange',route);
+  var mq=window.matchMedia('(min-width:900px)');
+  var sync=function(){var d=$('#filt');if(mq.matches){d.setAttribute('open','')}else{d.removeAttribute('open')}};
+  sync();
+  if(mq.addEventListener){mq.addEventListener('change',sync)}
+}
+async function deleteListing(b){
+  try{
+    if(b.local){
+      local=local.filter(function(x){return x.id!==b.id});lsSet('sx-local',local);
+    }else if(db){
+      await db.doc('listings/'+b.id).delete();
+    }
+    var i=saved.indexOf(b.id);if(i>-1){saved.splice(i,1);lsSet('sx-saved',saved)}
+    closeDetail();toast('Listing deleted.');render();
+  }catch(e){toast('The listing could not be deleted. Try again in a moment.')}
+}
+
+/* ---------- boot ---------- */
+setupControls();wire();drawContours();route();render();
+
+var useCap=(window.claude&&typeof window.claude.use==='function')?function(n){return window.claude.use(n)}:function(){return Promise.resolve(null)};
+(async function(){
+  try{user=await useCap('user')}catch(e){user=null}
+  try{if(user&&user.id){uid=await user.id()}}catch(e){uid=null}
+  try{db=await useCap('db')}catch(e){db=null}
+  if(!db){return}
+  var timer=setTimeout(function(){$('#net').hidden=false},10000);
+  try{
+    db.collection('listings').orderBy('createdAt','desc').limit(300).onSnapshot(function(snap){
+      if(!snap.metadata.fromCache){clearTimeout(timer);$('#net').hidden=true}
+      dbList=snap.docs.map(function(d){var x=d.data()||{};return norm(x,d.id,{db:true})}).filter(function(b){return b.title&&b.priceInr>0});
+      render();
+    },function(){clearTimeout(timer);$('#net').hidden=false});
+  }catch(e){clearTimeout(timer)}
+})();
+})();
+</script>
+
+</body>
+</html>
